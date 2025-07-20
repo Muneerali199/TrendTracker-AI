@@ -24,6 +24,13 @@ const mockSearchResults = [
         comments: 400,
         timestamp: '3h ago',
       },
+      {
+        id: 'insta-103',
+        content: 'Exploring the city and found this hidden gem. The vibes are immaculate.',
+        likes: 52000,
+        comments: 1200,
+        timestamp: '1d ago',
+      },
     ],
   },
   {
@@ -43,6 +50,13 @@ const mockSearchResults = [
         comments: 600,
         timestamp: '1d ago',
       },
+       {
+        id: 'li-203',
+        content: 'Mentorship is a two-way street. I learned as much from my mentee as they did from me. #Leadership #Development',
+        likes: 4100,
+        comments: 250,
+        timestamp: '3d ago',
+      },
     ],
   },
   {
@@ -55,6 +69,13 @@ const mockSearchResults = [
         comments: 6500,
         timestamp: '2d ago',
       },
+      {
+        id: 'yt-302',
+        content: 'A day in the life of a content creator. It\'s not as glamorous as you think! Full vlog is up now.',
+        likes: 180000,
+        comments: 11000,
+        timestamp: '5d ago',
+      },
     ],
   },
 ];
@@ -64,6 +85,13 @@ export async function performSearch(input: SearchPostsInput): Promise<SearchPost
 
   // Simulate a network delay
   await new Promise((resolve) => setTimeout(resolve, 1500));
+  
+  // A list of handles known to have no posts, to simulate a "user not found" scenario
+  const handlesWithNoPosts = ['@nonexistentuser', '@nobodyhere', '@fakehandle'];
+  if (handlesWithNoPosts.includes(input.handle.toLowerCase())) {
+    console.log(`No posts found for handle: ${input.handle} (simulated)`);
+    return { posts: [] };
+  }
 
   const platformResults = mockSearchResults.find(r => r.platform === input.platform);
 

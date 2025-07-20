@@ -83,12 +83,18 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
         const result = await fetchPostsAction(newInfluencer);
         if (result.error) {
             toast({ title: "Error fetching posts", description: result.error, variant: "destructive" });
-        } else if (result.posts) {
+        } else if (result.posts && result.posts.length > 0) {
             setPosts(prevPosts => [...prevPosts, ...result.posts!]);
             setInfluencers(prev => [...prev, newInfluencer]);
             setNewInfluencerName('');
             setNewInfluencerHandle('');
             toast({ title: "Influencer Added", description: `Found ${result.posts.length} new posts for ${newInfluencer.name}.`});
+        } else {
+            toast({ 
+              title: "No Posts Found", 
+              description: `Could not find any recent posts for ${handleWithAt}. Please check the handle and selected platforms.`, 
+              variant: "destructive" 
+            });
         }
       });
     }

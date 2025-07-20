@@ -19,11 +19,11 @@ export type Influencer = {
 };
 
 export const influencers: Influencer[] = [
-  { name: 'Casey Neistat', handle: '@caseyneistat', avatar: 'https://placehold.co/40x40.png', dataAiHint: 'man portrait' },
+  { name: 'Linus Tech Tips', handle: '@linustech', avatar: 'https://placehold.co/40x40.png', dataAiHint: 'man tech' },
+  { name: 'iJustine', handle: '@ijustine', avatar: 'https://placehold.co/40x40.png', dataAiHint: 'woman tech' },
+  { name: 'Cleo Abram', handle: '@cleoabram', avatar: 'https://placehold.co/40x40.png', dataAiHint: 'woman journalist' },
   { name: 'Marques Brownlee', handle: '@mkbhd', avatar: 'https://placehold.co/40x40.png', dataAiHint: 'man tech' },
   { name: 'Sara Dietschy', handle: '@saradietschy', avatar: 'https://placehold.co/40x40.png', dataAiHint: 'woman creative' },
-  { name: 'Gary Vaynerchuk', handle: '@garyvee', avatar: 'https://placehold.co/40x40.png', dataAiHint: 'man business' },
-  { name: 'Brene Brown', handle: '@brenebrown', avatar: 'https://placehold.co/40x40.png', dataAiHint: 'woman author' },
 ];
 
 export const posts: Post[] = [
@@ -36,7 +36,7 @@ export const posts: Post[] = [
     likes: 120000,
     comments: 8000,
     avatar: 'https://placehold.co/40x40.png',
-    timestamp: '2 hours ago',
+    timestamp: '2h ago',
     dataAiHint: 'man tech'
   },
   {
@@ -48,44 +48,44 @@ export const posts: Post[] = [
     likes: 45000,
     comments: 1200,
     avatar: 'https://placehold.co/40x40.png',
-    timestamp: '5 hours ago',
+    timestamp: '5h ago',
     dataAiHint: 'woman creative'
   },
-  {
-    id: '3',
-    influencer: 'Gary Vaynerchuk',
-    handle: '@garyvee',
-    platform: 'LinkedIn',
-    content: "Kindness is the ultimate strength in business. It's the ROI that compounds indefinitely. Stop overlooking it.",
-    likes: 22000,
-    comments: 2500,
-    avatar: 'https://placehold.co/40x40.png',
-    timestamp: '1 day ago',
-    dataAiHint: 'man business'
-  },
-  {
-    id: '4',
-    influencer: 'Casey Neistat',
-    handle: '@caseyneistat',
+   {
+    id: 'ij-1',
+    influencer: 'iJustine',
+    handle: '@ijustine',
     platform: 'YouTube',
-    content: "Built something crazy in my studio. It involves a lot of wood, a drone, and a questionable amount of glue. Full video is live!",
-    likes: 250000,
-    comments: 15000,
+    content: 'UNBOXING a transparent TV! This is WILD!',
+    likes: 310000,
+    comments: 12000,
     avatar: 'https://placehold.co/40x40.png',
-    timestamp: '1 day ago',
-    dataAiHint: 'man portrait'
+    timestamp: '1d ago',
+    dataAiHint: 'woman tech',
   },
   {
-    id: '5',
-    influencer: 'Brene Brown',
-    handle: '@brenebrown',
-    platform: 'Instagram',
-    content: "Vulnerability is not weakness; it's our most accurate measure of courage. Daring Greatly is not about winning or losing. It's about courage.",
-    likes: 88000,
-    comments: 3400,
+    id: 'ca-1',
+    influencer: 'Cleo Abram',
+    handle: '@cleoabram',
+    platform: 'YouTube',
+    content: 'Why AI terrifies and excites me. A deep dive into the future of artificial intelligence.',
+    likes: 85000,
+    comments: 4500,
     avatar: 'https://placehold.co/40x40.png',
-    timestamp: '2 days ago',
-    dataAiHint: 'woman author'
+    timestamp: '2d ago',
+    dataAiHint: 'woman journalist',
+  },
+  {
+    id: 'ltt-1',
+    influencer: 'Linus Tech Tips',
+    handle: '@linustech',
+    platform: 'YouTube',
+    content: 'We built a PC inside a fish tank. It actually works. For now.',
+    likes: 1200000,
+    comments: 55000,
+    avatar: 'https://placehold.co/40x40.png',
+    timestamp: '3d ago',
+    dataAiHint: 'man tech',
   },
   {
     id: '6',
@@ -96,20 +96,20 @@ export const posts: Post[] = [
     likes: 150000,
     comments: 4000,
     avatar: 'https://placehold.co/40x40.png',
-    timestamp: '2 days ago',
+    timestamp: '3d ago',
     dataAiHint: 'man tech'
   },
   {
-    id: '7',
-    influencer: 'Gary Vaynerchuk',
-    handle: '@garyvee',
-    platform: 'YouTube',
-    content: 'A new episode of DailyVee is up! I talk about the importance of speed and how to get more done in less time.',
-    likes: 40000,
-    comments: 3200,
+    id: 'ij-2',
+    influencer: 'iJustine',
+    handle: '@ijustine',
+    platform: 'Instagram',
+    content: 'Got to play with some new camera gear today. This thing is a beast!',
+    likes: 95000,
+    comments: 2100,
     avatar: 'https://placehold.co/40x40.png',
-    timestamp: '3 days ago',
-    dataAiHint: 'man business'
+    timestamp: '4d ago',
+    dataAiHint: 'woman tech',
   },
   {
     id: '8',
@@ -120,7 +120,7 @@ export const posts: Post[] = [
     likes: 9000,
     comments: 500,
     avatar: 'https://placehold.co/40x40.png',
-    timestamp: '4 days ago',
+    timestamp: '4d ago',
     dataAiHint: 'woman creative'
   },
 ];

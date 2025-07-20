@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useTransition } from 'react';
 import type { Influencer, Post as PostType } from '@/lib/data';
-import { generateSummaryAction } from '@/lib/actions';
+import { generateSummaryAction, fetchPostsAction } from '@/lib/actions';
 
 import { 
   SidebarProvider, 
@@ -22,7 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { PostCard } from '@/components/post-card';
-import { Mail, Plus, Sparkles, Trash2, Bot } from 'lucide-react';
+import { Mail, Plus, Sparkles, Trash2, Bot, Loader2 } from 'lucide-react';
 
 type DashboardProps = {
   initialInfluencers: Influencer[];
@@ -31,8 +31,10 @@ type DashboardProps = {
 
 const platforms: PostType['platform'][] = ['YouTube', 'Instagram', 'LinkedIn'];
 
-export function Dashboard({ initialInfluencers, initialPosts }: DashboardProps) {
+export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }: DashboardProps) {
   const [influencers, setInfluencers] = useState<Influencer[]>(initialInfluencers);
+  const [posts, setPosts] = useState<PostType[]>(initialPostsProp);
+
   const [newInfluencerName, setNewInfluencerName] = useState('');
   const [newInfluencerHandle, setNewInfluencerHandle] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<Record<string, boolean>>(
@@ -40,35 +42,55 @@ export function Dashboard({ initialInfluencers, initialPosts }: DashboardProps) 
   );
 
   const [summary, setSummary] = useState('');
-  const [isPending, startTransition] = useTransition();
+  const [isSummarizing, startSummaryTransition] = useTransition();
+  const [isFetching, startFetchingTransition] = useTransition();
   const { toast } = useToast();
 
   const filteredPosts = useMemo(() => {
     const activePlatforms = Object.keys(selectedPlatforms).filter(p => selectedPlatforms[p]);
-    return initialPosts.filter(post => 
+    // Sort by a heuristic of recency. "h" > "d"
+    const sortedPosts = [...posts].sort((a, b) => {
+        const aVal = a.timestamp.includes('h') ? 1 : 0;
+        const bVal = b.timestamp.includes('h') ? 1 : 0;
+        if (aVal !== bVal) return bVal - aVal;
+        const aNum = parseInt(a.timestamp);
+        const bNum = parseInt(b.timestamp);
+        return aNum - bNum;
+    });
+
+    return sortedPosts.filter(post => 
       activePlatforms.includes(post.platform) && 
       influencers.some(inf => inf.handle === post.handle)
     );
-  }, [selectedPlatforms, influencers, initialPosts]);
+  }, [selectedPlatforms, influencers, posts]);
 
   const handleAddInfluencer = () => {
-    if (newInfluencerName.trim() && newInfluencerHandle.trim()) {
+    if (newInfluencerName.trim() && newInfluencerHandle.trim() && !isFetching) {
       const handleWithAt = newInfluencerHandle.startsWith('@') ? newInfluencerHandle : `@${newInfluencerHandle}`;
       if (influencers.find(i => i.handle === handleWithAt)) {
         toast({ title: "Error", description: "Influencer handle already exists.", variant: "destructive" });
         return;
       }
-      setInfluencers([
-        ...influencers, 
-        { 
-          name: newInfluencerName, 
-          handle: handleWithAt, 
-          avatar: `https://placehold.co/40x40.png`,
-          dataAiHint: 'person portrait'
+      
+      const newInfluencer: Influencer = { 
+        name: newInfluencerName, 
+        handle: handleWithAt, 
+        avatar: `https://placehold.co/40x40.png`,
+        dataAiHint: 'person portrait'
+      };
+
+      startFetchingTransition(async () => {
+        const result = await fetchPostsAction(newInfluencer);
+        if (result.error) {
+            toast({ title: "Error fetching posts", description: result.error, variant: "destructive" });
+        } else if (result.posts) {
+            setPosts(prevPosts => [...prevPosts, ...result.posts!]);
+            setInfluencers(prev => [...prev, newInfluencer]);
+            setNewInfluencerName('');
+            setNewInfluencerHandle('');
+            toast({ title: "Influencer Added", description: `Found ${result.posts.length} new posts for ${newInfluencer.name}.`});
         }
-      ]);
-      setNewInfluencerName('');
-      setNewInfluencerHandle('');
+      });
     }
   };
 
@@ -79,7 +101,7 @@ export function Dashboard({ initialInfluencers, initialPosts }: DashboardProps) 
   const handleGenerateSummary = () => {
     const contentToSummarize = filteredPosts.map(p => `${p.influencer} (${p.platform}): ${p.content}`).join('\n\n');
     
-    startTransition(async () => {
+    startSummaryTransition(async () => {
       setSummary('');
       const result = await generateSummaryAction(contentToSummarize);
       if (result.error) {
@@ -97,6 +119,8 @@ export function Dashboard({ initialInfluencers, initialPosts }: DashboardProps) 
       description: "A summary has been sent to the brand team.",
     });
   };
+
+  const isPending = isSummarizing || isFetching;
 
   return (
     <SidebarProvider>
@@ -121,10 +145,11 @@ export function Dashboard({ initialInfluencers, initialPosts }: DashboardProps) 
               ))}
             </div>
             <div className="mt-4 space-y-2">
-              <Input placeholder="Name (e.g. John Doe)" value={newInfluencerName} onChange={(e) => setNewInfluencerName(e.target.value)} />
-              <Input placeholder="Handle (e.g. @johndoe)" value={newInfluencerHandle} onChange={(e) => setNewInfluencerHandle(e.target.value)} />
-              <Button onClick={handleAddInfluencer} className="w-full">
-                <Plus className="w-4 h-4 mr-2" /> Add Handle
+              <Input placeholder="Name (e.g. Jane Smith)" value={newInfluencerName} onChange={(e) => setNewInfluencerName(e.target.value)} />
+              <Input placeholder="Handle (e.g. @janesmith)" value={newInfluencerHandle} onChange={(e) => setNewInfluencerHandle(e.target.value)} />
+              <Button onClick={handleAddInfluencer} className="w-full" disabled={isFetching}>
+                {isFetching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                {isFetching ? 'Searching...' : 'Add Handle'}
               </Button>
             </div>
           </SidebarGroup>
@@ -173,7 +198,7 @@ export function Dashboard({ initialInfluencers, initialPosts }: DashboardProps) 
               <CardDescription>Generate a summary of the latest posts to identify key trends and topics.</CardDescription>
             </CardHeader>
             <CardContent>
-              {isPending ? (
+              {isSummarizing ? (
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-full" />
@@ -184,8 +209,8 @@ export function Dashboard({ initialInfluencers, initialPosts }: DashboardProps) 
               ) : (
                 <p className="text-sm text-muted-foreground">Click the button to generate an AI summary of the posts below.</p>
               )}
-              <Button onClick={handleGenerateSummary} disabled={isPending} className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground">
-                {isPending ? 'Generating...' : 'Generate Summary'}
+              <Button onClick={handleGenerateSummary} disabled={isSummarizing} className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground">
+                {isSummarizing ? 'Generating...' : 'Generate Summary'}
               </Button>
             </CardContent>
           </Card>

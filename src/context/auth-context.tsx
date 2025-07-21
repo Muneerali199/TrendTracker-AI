@@ -3,22 +3,23 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   logout: () => void;
-  isFirebaseEnabled: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const unprotectedRoutes = ['/', '/login', '/signup'];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const isFirebaseEnabled = !!auth;
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!auth) {
@@ -32,6 +33,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!loading && !user && !unprotectedRoutes.includes(pathname)) {
+        router.push('/login');
+    }
+  }, [user, loading, router, pathname]);
+
   const logout = async () => {
     if (auth) {
       await signOut(auth);
@@ -40,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, isFirebaseEnabled }}>
+    <AuthContext.Provider value={{ user, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );

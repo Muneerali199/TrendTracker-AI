@@ -39,7 +39,7 @@ type DashboardProps = {
 const platforms: PostType['platform'][] = ['YouTube', 'Instagram', 'LinkedIn'];
 
 export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }: DashboardProps) {
-  const { user, loading, logout, isFirebaseEnabled } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
 
   const [influencers, setInfluencers] = useState<Influencer[]>(initialInfluencers);
@@ -57,13 +57,13 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isFirebaseEnabled && !loading && !user) {
+    if (!loading && !user) {
       router.push('/login');
     }
-  }, [user, loading, router, isFirebaseEnabled]);
+  }, [user, loading, router]);
 
   useEffect(() => {
-    if (user && isFirebaseEnabled) {
+    if (user) {
       const fetchInfluencers = async () => {
         const userInfluencers = await getInfluencers(user.uid);
         if (userInfluencers.length > 0) {
@@ -81,7 +81,7 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
       };
       fetchInfluencers();
     }
-  }, [user, isFirebaseEnabled]);
+  }, [user]);
 
   const filteredPosts = useMemo(() => {
     const activePlatforms = Object.keys(selectedPlatforms).filter(p => selectedPlatforms[p]);
@@ -102,7 +102,7 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
   }, [selectedPlatforms, influencers, posts]);
 
   const handleAddInfluencer = async () => {
-    if (newInfluencerName.trim() && newInfluencerHandle.trim() && !isFetching && user && isFirebaseEnabled) {
+    if (newInfluencerName.trim() && newInfluencerHandle.trim() && !isFetching && user) {
       const handleWithAt = newInfluencerHandle.startsWith('@') ? newInfluencerHandle : `@${newInfluencerHandle}`;
       if (influencers.find(i => i.handle === handleWithAt)) {
         toast({ title: "Error", description: "Influencer handle already exists.", variant: "destructive" });
@@ -135,17 +135,11 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
             });
         }
       });
-    } else if (!isFirebaseEnabled) {
-      toast({
-        title: 'Authentication Disabled',
-        description: 'Please configure Firebase to manage influencers.',
-        variant: 'destructive',
-      });
     }
   };
 
   const handleRemoveInfluencer = async (handleToRemove: string) => {
-    if (user && isFirebaseEnabled) {
+    if (user) {
       await removeInfluencerFromDB(user.uid, handleToRemove);
       setInfluencers(influencers.filter(i => i.handle !== handleToRemove));
     }
@@ -173,7 +167,7 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
     });
   };
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -193,38 +187,22 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
           </div>
         </SidebarHeader>
         <SidebarContent className="p-2">
-          {!isFirebaseEnabled && (
-            <Card className="m-2 bg-yellow-50 border-yellow-200">
-              <CardContent className="p-3">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-yellow-500 mt-1" />
-                  <div>
-                    <p className="font-semibold text-yellow-800">Demo Mode</p>
-                    <p className="text-xs text-yellow-700">
-                      Authentication is disabled. Please add your Firebase config to enable user accounts.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           <SidebarGroup>
             <SidebarGroupLabel>Manage Handles</SidebarGroupLabel>
             <div className="space-y-2">
               {influencers.map((influencer) => (
                 <div key={influencer.handle} className="flex items-center justify-between text-sm p-1 rounded-md hover:bg-sidebar-accent">
                   <span>{influencer.name}</span>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveInfluencer(influencer.handle)} disabled={!isFirebaseEnabled}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveInfluencer(influencer.handle)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               ))}
             </div>
             <div className="mt-4 space-y-2">
-              <Input placeholder="Name (e.g. Jane Smith)" value={newInfluencerName} onChange={(e) => setNewInfluencerName(e.target.value)} disabled={!isFirebaseEnabled}/>
-              <Input placeholder="Handle (e.g. @janesmith)" value={newInfluencerHandle} onChange={(e) => setNewInfluencerHandle(e.target.value)} disabled={!isFirebaseEnabled}/>
-              <Button onClick={handleAddInfluencer} className="w-full" disabled={isFetching || !isFirebaseEnabled}>
+              <Input placeholder="Name (e.g. Jane Smith)" value={newInfluencerName} onChange={(e) => setNewInfluencerName(e.target.value)} />
+              <Input placeholder="Handle (e.g. @janesmith)" value={newInfluencerHandle} onChange={(e) => setNewInfluencerHandle(e.target.value)} />
+              <Button onClick={handleAddInfluencer} className="w-full" disabled={isFetching}>
                 {isFetching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                 {isFetching ? 'Searching...' : 'Add Handle'}
               </Button>
@@ -248,7 +226,7 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
             </div>
           </SidebarGroup>
         </SidebarContent>
-        {isFirebaseEnabled && user && (
+        {user && (
             <SidebarFooter>
                 <SidebarMenu>
                     <SidebarMenuItem>

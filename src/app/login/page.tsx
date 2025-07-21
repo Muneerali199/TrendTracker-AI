@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Bot, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/context/auth-context';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,6 +19,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  if (user) {
+    router.push('/dashboard');
+    return null;
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +39,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/');
+      router.push('/dashboard');
     } catch (error: any) {
       toast({
         title: 'Login Failed',
@@ -48,9 +55,9 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <Link href="/" className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <Bot className="h-8 w-8 text-primary" />
-          </div>
+          </Link>
           <CardTitle className="text-2xl">Welcome Back!</CardTitle>
           <CardDescription>Log in to your TrendTracker AI account</CardDescription>
         </CardHeader>

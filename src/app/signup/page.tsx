@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Bot, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/context/auth-context';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
@@ -19,6 +20,12 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  if (user) {
+    router.push('/dashboard');
+    return null;
+  }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +48,7 @@ export default function SignUpPage() {
     setLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      router.push('/');
+      router.push('/dashboard');
     } catch (error: any) {
       toast({
         title: 'Sign Up Failed',
@@ -57,11 +64,11 @@ export default function SignUpPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                <Bot className="h-8 w-8 text-primary" />
-            </div>
-            <CardTitle className="text-2xl">Create an Account</CardTitle>
-            <CardDescription>Join TrendTracker AI to start analyzing trends</CardDescription>
+          <Link href="/" className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <Bot className="h-8 w-8 text-primary" />
+          </Link>
+          <CardTitle className="text-2xl">Create an Account</CardTitle>
+          <CardDescription>Join TrendTracker AI to start analyzing trends</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp} className="space-y-4">

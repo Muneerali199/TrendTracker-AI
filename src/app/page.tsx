@@ -3,17 +3,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bot, BarChart, Users, Send } from 'lucide-react';
 import Image from 'next/image';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-4">
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <Bot className="w-8 h-8 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight">TrendTracker AI</h1>
-          </div>
+          </Link>
           <nav className="flex items-center gap-2 sm:gap-4">
+            <ThemeToggle />
             <Button variant="ghost" asChild>
               <Link href="/login">Log In</Link>
             </Button>
@@ -59,7 +61,7 @@ export default function LandingPage() {
             <p className="mt-2 text-muted-foreground">A simple, powerful workflow to keep you in the know.</p>
           </div>
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-300">
               <CardHeader className="items-center text-center">
                 <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 text-primary mb-4">
                     <Users className="h-6 w-6" />
@@ -70,7 +72,7 @@ export default function LandingPage() {
                 Add handles from YouTube, Instagram, and LinkedIn to build your custom tracking list.
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-300">
               <CardHeader className="items-center text-center">
                 <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 text-primary mb-4">
                     <BarChart className="h-6 w-6" />
@@ -81,7 +83,7 @@ export default function LandingPage() {
                 Our system automatically collects the latest posts from the influencers you follow.
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-300">
               <CardHeader className="items-center text-center">
                 <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 text-primary mb-4">
                     <Bot className="h-6 w-6" />
@@ -92,7 +94,7 @@ export default function LandingPage() {
                 Use AI to generate instant summaries of key trends and topics from the aggregated content.
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-300">
               <CardHeader className="items-center text-center">
                  <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 text-primary mb-4">
                     <Send className="h-6 w-6" />

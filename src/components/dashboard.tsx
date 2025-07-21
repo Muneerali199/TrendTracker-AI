@@ -2,10 +2,8 @@
 
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import type { Influencer, Post as PostType } from '@/lib/data';
+import { influencers as initialInfluencers, posts as initialPosts } from '@/lib/data';
 import { generateSummaryAction, fetchPostsAction } from '@/lib/actions';
-import { useAuth } from '@/context/auth-context';
-import { useRouter } from 'next/navigation';
-import { addInfluencer, removeInfluencer, getInfluencers } from '@/lib/supabase/db';
 import { 
   SidebarProvider, 
   Sidebar, 
@@ -14,11 +12,7 @@ import {
   SidebarGroup, 
   SidebarGroupLabel,
   SidebarInset,
-  SidebarTrigger,
-  SidebarFooter,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
+  SidebarTrigger
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,16 +22,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { PostCard } from '@/components/post-card';
-import { Mail, Plus, Sparkles, Trash2, Bot, Loader2, LogOut, User } from 'lucide-react';
+import { Mail, Plus, Sparkles, Trash2, Bot, Loader2 } from 'lucide-react';
 
 const platforms: PostType['platform'][] = ['YouTube', 'Instagram', 'LinkedIn'];
 
 export function Dashboard() {
-  const { session, loading, logout } = useAuth();
-  const router = useRouter();
-
-  const [influencers, setInfluencers] = useState<Influencer[]>([]);
-  const [posts, setPosts] = useState<PostType[]>([]);
+  const [influencers, setInfluencers] = useState<Influencer[]>(initialInfluencers);
+  const [posts, setPosts] = useState<PostType[]>(initialPosts);
 
   const [newInfluencerName, setNewInfluencerName] = useState('');
   const [newInfluencerHandle, setNewInfluencerHandle] = useState('');
@@ -49,33 +40,6 @@ export function Dashboard() {
   const [isSummarizing, startSummaryTransition] = useTransition();
   const [isFetching, startFetchingTransition] = useTransition();
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (!loading && !session) {
-      router.push('/auth');
-    }
-  }, [session, loading, router]);
-
-  useEffect(() => {
-    if (session?.user) {
-      const fetchInitialData = async () => {
-        const userInfluencers = await getInfluencers(session.user.id);
-        if (userInfluencers) {
-          setInfluencers(userInfluencers);
-          // Optionally fetch posts for these influencers
-          userInfluencers.forEach(inf => {
-            startFetchingTransition(async () => {
-              const result = await fetchPostsAction(inf);
-              if (result.posts) {
-                setPosts(prev => [...prev, ...result.posts!]);
-              }
-            });
-          });
-        }
-      };
-      fetchInitialData();
-    }
-  }, [session]);
 
   const filteredPosts = useMemo(() => {
     const activePlatforms = Object.keys(selectedPlatforms).filter(p => selectedPlatforms[p]);
@@ -95,7 +59,7 @@ export function Dashboard() {
   }, [selectedPlatforms, influencers, posts]);
 
   const handleAddInfluencer = async () => {
-    if (newInfluencerName.trim() && newInfluencerHandle.trim() && !isFetching && session?.user) {
+    if (newInfluencerName.trim() && newInfluencerHandle.trim() && !isFetching) {
       const handleWithAt = newInfluencerHandle.startsWith('@') ? newInfluencerHandle : `@${newInfluencerHandle}`;
       if (influencers.find(i => i.handle === handleWithAt)) {
         toast({ title: "Error", description: "Influencer handle already exists.", variant: "destructive" });
@@ -114,14 +78,11 @@ export function Dashboard() {
         if (result.error) {
             toast({ title: "Error fetching posts", description: result.error, variant: "destructive" });
         } else if (result.posts && result.posts.length > 0) {
-            const added = await addInfluencer(session.user.id, newInfluencer);
-            if (added) {
-                setPosts(prevPosts => [...prevPosts, ...result.posts!]);
-                setInfluencers(prev => [...prev, newInfluencer]);
-                setNewInfluencerName('');
-                setNewInfluencerHandle('');
-                toast({ title: "Influencer Added", description: `Found ${result.posts.length} new posts for ${newInfluencer.name}.`});
-            }
+            setPosts(prevPosts => [...prevPosts, ...result.posts!]);
+            setInfluencers(prev => [...prev, newInfluencer]);
+            setNewInfluencerName('');
+            setNewInfluencerHandle('');
+            toast({ title: "Influencer Added", description: `Found ${result.posts.length} new posts for ${newInfluencer.name}.`});
         } else {
             toast({ 
               title: "No Posts Found", 
@@ -134,12 +95,7 @@ export function Dashboard() {
   };
 
   const handleRemoveInfluencer = async (handleToRemove: string) => {
-    if (session?.user) {
-      const success = await removeInfluencer(session.user.id, handleToRemove);
-      if (success) {
-        setInfluencers(influencers.filter(i => i.handle !== handleToRemove));
-      }
-    }
+    setInfluencers(influencers.filter(i => i.handle !== handleToRemove));
   };
 
   const handleGenerateSummary = () => {
@@ -163,15 +119,7 @@ export function Dashboard() {
       description: "A summary has been sent to the brand team.",
     });
   };
-
-  if (loading || !session) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+  
   const isPending = isSummarizing || isFetching;
 
   return (
@@ -223,24 +171,6 @@ export function Dashboard() {
             </div>
           </SidebarGroup>
         </SidebarContent>
-        {session?.user && (
-            <SidebarFooter>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <div className="flex items-center gap-2 p-2 text-sm">
-                            <User className="w-4 h-4"/>
-                            <span className="font-medium">{session.user.email}</span>
-                        </div>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={logout}>
-                            <LogOut />
-                            <span>Logout</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarFooter>
-        )}
       </Sidebar>
       <SidebarInset>
         <main className="p-4 sm:p-6 lg:p-8">

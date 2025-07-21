@@ -16,11 +16,8 @@ export default function LandingPage() {
           </Link>
           <nav className="flex items-center gap-2 sm:gap-4">
             <ThemeToggle />
-            <Button variant="ghost" asChild>
-              <Link href="/auth">Log In</Link>
-            </Button>
             <Button asChild>
-              <Link href="/auth">Sign Up</Link>
+              <Link href="/dashboard">Get Started</Link>
             </Button>
           </nav>
         </div>
@@ -36,7 +33,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-8 flex justify-center gap-4 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
             <Button size="lg" asChild>
-              <Link href="/auth">Get Started for Free</Link>
+              <Link href="/dashboard">Get Started for Free</Link>
             </Button>
           </div>
         </section>

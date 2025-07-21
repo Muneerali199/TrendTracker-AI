@@ -5,8 +5,7 @@ import type { Influencer, Post as PostType } from '@/lib/data';
 import { generateSummaryAction, fetchPostsAction } from '@/lib/actions';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import { addInfluencer as addInfluencerToDB, removeInfluencer as removeInfluencerFromDB, getInfluencers } from '@/lib/firebase/firestore';
-
+import { addInfluencer, removeInfluencer, getInfluencers } from '@/lib/supabase/db';
 import { 
   SidebarProvider, 
   Sidebar, 
@@ -29,21 +28,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { PostCard } from '@/components/post-card';
-import { Mail, Plus, Sparkles, Trash2, Bot, Loader2, LogOut, User, AlertTriangle } from 'lucide-react';
-
-type DashboardProps = {
-  initialInfluencers: Influencer[];
-  initialPosts: PostType[];
-};
+import { Mail, Plus, Sparkles, Trash2, Bot, Loader2, LogOut, User } from 'lucide-react';
 
 const platforms: PostType['platform'][] = ['YouTube', 'Instagram', 'LinkedIn'];
 
-export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }: DashboardProps) {
-  const { user, loading, logout } = useAuth();
+export function Dashboard() {
+  const { session, loading, logout } = useAuth();
   const router = useRouter();
 
-  const [influencers, setInfluencers] = useState<Influencer[]>(initialInfluencers);
-  const [posts, setPosts] = useState<PostType[]>(initialPostsProp);
+  const [influencers, setInfluencers] = useState<Influencer[]>([]);
+  const [posts, setPosts] = useState<PostType[]>([]);
 
   const [newInfluencerName, setNewInfluencerName] = useState('');
   const [newInfluencerHandle, setNewInfluencerHandle] = useState('');
@@ -57,16 +51,16 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    if (!loading && !session) {
+      router.push('/auth');
     }
-  }, [user, loading, router]);
+  }, [session, loading, router]);
 
   useEffect(() => {
-    if (user) {
-      const fetchInfluencers = async () => {
-        const userInfluencers = await getInfluencers(user.uid);
-        if (userInfluencers.length > 0) {
+    if (session?.user) {
+      const fetchInitialData = async () => {
+        const userInfluencers = await getInfluencers(session.user.id);
+        if (userInfluencers) {
           setInfluencers(userInfluencers);
           // Optionally fetch posts for these influencers
           userInfluencers.forEach(inf => {
@@ -79,13 +73,12 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
           });
         }
       };
-      fetchInfluencers();
+      fetchInitialData();
     }
-  }, [user]);
+  }, [session]);
 
   const filteredPosts = useMemo(() => {
     const activePlatforms = Object.keys(selectedPlatforms).filter(p => selectedPlatforms[p]);
-    // Sort by a heuristic of recency. "h" > "d"
     const sortedPosts = [...posts].sort((a, b) => {
         const aVal = a.timestamp.includes('h') ? 1 : 0;
         const bVal = b.timestamp.includes('h') ? 1 : 0;
@@ -102,7 +95,7 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
   }, [selectedPlatforms, influencers, posts]);
 
   const handleAddInfluencer = async () => {
-    if (newInfluencerName.trim() && newInfluencerHandle.trim() && !isFetching && user) {
+    if (newInfluencerName.trim() && newInfluencerHandle.trim() && !isFetching && session?.user) {
       const handleWithAt = newInfluencerHandle.startsWith('@') ? newInfluencerHandle : `@${newInfluencerHandle}`;
       if (influencers.find(i => i.handle === handleWithAt)) {
         toast({ title: "Error", description: "Influencer handle already exists.", variant: "destructive" });
@@ -121,12 +114,14 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
         if (result.error) {
             toast({ title: "Error fetching posts", description: result.error, variant: "destructive" });
         } else if (result.posts && result.posts.length > 0) {
-            await addInfluencerToDB(user.uid, newInfluencer);
-            setPosts(prevPosts => [...prevPosts, ...result.posts!]);
-            setInfluencers(prev => [...prev, newInfluencer]);
-            setNewInfluencerName('');
-            setNewInfluencerHandle('');
-            toast({ title: "Influencer Added", description: `Found ${result.posts.length} new posts for ${newInfluencer.name}.`});
+            const added = await addInfluencer(session.user.id, newInfluencer);
+            if (added) {
+                setPosts(prevPosts => [...prevPosts, ...result.posts!]);
+                setInfluencers(prev => [...prev, newInfluencer]);
+                setNewInfluencerName('');
+                setNewInfluencerHandle('');
+                toast({ title: "Influencer Added", description: `Found ${result.posts.length} new posts for ${newInfluencer.name}.`});
+            }
         } else {
             toast({ 
               title: "No Posts Found", 
@@ -139,9 +134,11 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
   };
 
   const handleRemoveInfluencer = async (handleToRemove: string) => {
-    if (user) {
-      await removeInfluencerFromDB(user.uid, handleToRemove);
-      setInfluencers(influencers.filter(i => i.handle !== handleToRemove));
+    if (session?.user) {
+      const success = await removeInfluencer(session.user.id, handleToRemove);
+      if (success) {
+        setInfluencers(influencers.filter(i => i.handle !== handleToRemove));
+      }
     }
   };
 
@@ -167,7 +164,7 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
     });
   };
 
-  if (loading || !user) {
+  if (loading || !session) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -226,13 +223,13 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
             </div>
           </SidebarGroup>
         </SidebarContent>
-        {user && (
+        {session?.user && (
             <SidebarFooter>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <div className="flex items-center gap-2 p-2 text-sm">
                             <User className="w-4 h-4"/>
-                            <span className="font-medium">{user.email}</span>
+                            <span className="font-medium">{session.user.email}</span>
                         </div>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
@@ -292,10 +289,30 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
             {filteredPosts.length > 0 ? (
               filteredPosts.map(post => <PostCard key={post.id} post={post} />)
             ) : (
-              <div className="col-span-full text-center py-12">
-                <p className="text-muted-foreground">No posts found for the selected filters. Add an influencer to get started.</p>
-              </div>
+              !isPending && (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-muted-foreground">No posts found for the selected filters. Add an influencer to get started.</p>
+                </div>
+              )
             )}
+            {isPending && Array.from({length:3}).map((_, i) => (
+                <Card key={i}>
+                    <CardHeader className="flex flex-row items-center gap-4 p-4">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-3 w-16" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                    </CardContent>
+                    <CardFooter className="p-4">
+                        <Skeleton className="h-4 w-1/2" />
+                    </CardFooter>
+                </Card>
+            ))}
           </div>
         </main>
       </SidebarInset>

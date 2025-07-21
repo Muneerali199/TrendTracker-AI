@@ -1,8 +1,20 @@
 import { Dashboard } from '@/components/dashboard';
-import { influencers, posts } from '@/lib/data';
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const supabase = createServerComponentClient({ cookies });
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    redirect('/auth');
+  }
+
   return (
-    <Dashboard initialInfluencers={influencers} initialPosts={posts} />
+    <Dashboard />
   );
 }

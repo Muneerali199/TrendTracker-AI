@@ -35,6 +35,7 @@ export default function AuthPage() {
                     theme={theme === 'dark' ? 'dark' : 'default'}
                     providers={['google']}
                     redirectTo={redirectUrl}
+                    showLinks={false}
                 />
             </div>
         </div>

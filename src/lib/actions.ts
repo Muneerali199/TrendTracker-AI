@@ -3,7 +3,6 @@
 import { summarizeAggregatedContent } from '@/ai/flows/summarize-aggregated-content';
 import { searchPosts } from '@/ai/flows/search-posts';
 import type { Post } from './data';
-import type { Influencer } from './data';
 
 export async function generateSummaryAction(content: string) {
   if (!content || content.trim().length === 0) {
@@ -19,32 +18,17 @@ export async function generateSummaryAction(content: string) {
   }
 }
 
-export async function fetchPostsAction({ influencer, platform }: { influencer: Influencer, platform: Post['platform'] }): Promise<{posts?: Post[], error?: string}> {
+export async function fetchPostsAction({ handle, platform }: { handle: string, platform: Post['platform'] }): Promise<{posts?: Omit<Post, 'influencer' | 'handle' | 'avatar' | 'dataAiHint' | 'platform'>[], error?: string}> {
   try {
-    const result = await searchPosts({ handle: influencer.handle, platform });
+    const result = await searchPosts({ handle, platform });
 
     if (!result || !result.posts) {
         return { posts: [] };
     }
 
-    const allPosts = result.posts.map(p => ({
-        ...p,
-        platform: platform,
-        influencer: influencer.name,
-        handle: influencer.handle,
-        avatar: influencer.avatar,
-        dataAiHint: influencer.dataAiHint,
-    }));
-
-    // If no posts were found on the platform, return an empty array.
-    if (allPosts.length === 0) {
-        return { posts: [] };
-    }
-
-    return { posts: allPosts };
+    return { posts: result.posts };
   } catch (e) {
     console.error(e);
-    // Provide a more specific error message if possible
     const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
     return { error: `An error occurred while fetching posts: ${errorMessage}` };
   }

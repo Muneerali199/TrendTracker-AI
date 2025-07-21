@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useTransition, useEffect } from 'react';
+import React, { useState, useMemo, useTransition } from 'react';
 import type { Influencer, Post as PostType } from '@/lib/data';
 import { generateSummaryAction, fetchPostsAction } from '@/lib/actions';
 import { 
@@ -23,8 +23,6 @@ import { useToast } from '@/hooks/use-toast';
 import { PostCard } from '@/components/post-card';
 import { Mail, Plus, Sparkles, Trash2, Bot, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-
 
 const platforms: PostType['platform'][] = ['YouTube', 'Instagram', 'LinkedIn'];
 
@@ -48,6 +46,7 @@ export function Dashboard() {
   const filteredPosts = useMemo(() => {
     const activePlatforms = Object.keys(selectedPlatforms).filter(p => selectedPlatforms[p]);
     const sortedPosts = [...posts].sort((a, b) => {
+        // Simple sort to bring "h" (hours) ago posts before "d" (days) ago
         const aVal = a.timestamp.includes('h') ? 1 : 0;
         const bVal = b.timestamp.includes('h') ? 1 : 0;
         if (aVal !== bVal) return bVal - aVal;
@@ -62,7 +61,7 @@ export function Dashboard() {
     );
   }, [selectedPlatforms, influencers, posts]);
 
-  const handleAddInfluencer = async () => {
+  const handleAddInfluencer = () => {
     if (newInfluencerName.trim() && newInfluencerHandle.trim() && !isFetching) {
       const handleWithAt = newInfluencerHandle.startsWith('@') ? newInfluencerHandle : `@${newInfluencerHandle}`;
       if (influencers.find(i => i.handle === handleWithAt && i.platform === newInfluencerPlatform)) {
@@ -79,11 +78,19 @@ export function Dashboard() {
       };
 
       startFetchingTransition(async () => {
-        const result = await fetchPostsAction({ influencer: newInfluencer, platform: newInfluencerPlatform });
+        const result = await fetchPostsAction({ handle: handleWithAt, platform: newInfluencerPlatform });
         if (result.error) {
             toast({ title: "Error fetching posts", description: result.error, variant: "destructive" });
         } else if (result.posts && result.posts.length > 0) {
-            setPosts(prevPosts => [...prevPosts, ...result.posts!]);
+            const newPosts = result.posts.map(p => ({
+              ...p,
+              influencer: newInfluencer.name,
+              handle: newInfluencer.handle,
+              avatar: newInfluencer.avatar,
+              dataAiHint: newInfluencer.dataAiHint,
+              platform: newInfluencer.platform,
+            }));
+            setPosts(prevPosts => [...prevPosts, ...newPosts]);
             setInfluencers(prev => [...prev, newInfluencer]);
             setNewInfluencerName('');
             setNewInfluencerHandle('');
@@ -103,7 +110,7 @@ export function Dashboard() {
     }
   };
 
-  const handleRemoveInfluencer = async (handleToRemove: string, platformToRemove: PostType['platform']) => {
+  const handleRemoveInfluencer = (handleToRemove: string, platformToRemove: PostType['platform']) => {
     setInfluencers(influencers.filter(i => !(i.handle === handleToRemove && i.platform === platformToRemove)));
   };
 
@@ -253,7 +260,7 @@ export function Dashboard() {
                 </div>
               )
             )}
-            {isPending && Array.from({length:3}).map((_, i) => (
+            {isFetching && Array.from({length:3}).map((_, i) => (
                 <Card key={i} className="animate-pulse">
                     <CardHeader className="flex flex-row items-center gap-4 p-4">
                         <Skeleton className="h-10 w-10 rounded-full" />

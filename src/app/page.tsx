@@ -8,7 +8,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <header className="container mx-auto px-4 sm:px-6 lg:px-8 animate-fade-in-up">
+      <header className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-4">
           <Link href="/" className="flex items-center gap-2">
             <Bot className="w-8 h-8 text-primary" />
@@ -106,7 +106,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-muted-foreground animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+      <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-muted-foreground">
         <p>&copy; {new Date().getFullYear()} TrendTracker AI. All rights reserved.</p>
       </footer>
     </div>

@@ -27,7 +27,7 @@ export function PostCard({ post }: PostCardProps) {
   const PlatformIcon = platformIcons[post.platform];
 
   return (
-    <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+    <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
       <CardHeader className="flex flex-row items-center gap-4 p-4 bg-card">
         <Avatar>
           <AvatarImage asChild src={post.avatar}>

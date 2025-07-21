@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import type { Influencer, Post as PostType } from '@/lib/data';
-import { influencers as initialInfluencers, posts as initialPosts } from '@/lib/data';
 import { generateSummaryAction, fetchPostsAction } from '@/lib/actions';
 import { 
   SidebarProvider, 
@@ -15,7 +14,7 @@ import {
   SidebarTrigger
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -24,13 +23,14 @@ import { useToast } from '@/hooks/use-toast';
 import { PostCard } from '@/components/post-card';
 import { Mail, Plus, Sparkles, Trash2, Bot, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 
 const platforms: PostType['platform'][] = ['YouTube', 'Instagram', 'LinkedIn'];
 
 export function Dashboard() {
-  const [influencers, setInfluencers] = useState<Influencer[]>(initialInfluencers);
-  const [posts, setPosts] = useState<PostType[]>(initialPosts);
+  const [influencers, setInfluencers] = useState<Influencer[]>([]);
+  const [posts, setPosts] = useState<PostType[]>([]);
 
   const [newInfluencerName, setNewInfluencerName] = useState('');
   const [newInfluencerHandle, setNewInfluencerHandle] = useState('');
@@ -209,11 +209,11 @@ export function Dashboard() {
             </Button>
           </header>
           
-          <Card className="mb-8 border-accent shadow-lg shadow-accent/10">
+          <Card className="mb-8 bg-primary/5 border-primary/20 shadow-lg shadow-primary/10">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <Sparkles className="w-6 h-6 text-accent" />
-                <CardTitle className="text-accent">AI-Powered Trend Analysis</CardTitle>
+                <Sparkles className="w-6 h-6 text-primary" />
+                <CardTitle className="text-primary">AI-Powered Trend Analysis</CardTitle>
               </div>
               <CardDescription>Generate a summary of the latest posts to identify key trends and topics.</CardDescription>
             </CardHeader>
@@ -225,11 +225,11 @@ export function Dashboard() {
                   <Skeleton className="h-4 w-3/4" />
                 </div>
               ) : summary ? (
-                <p className="text-sm leading-relaxed">{summary}</p>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{summary}</p>
               ) : (
                 <p className="text-sm text-muted-foreground">Click the button to generate an AI summary of the posts below.</p>
               )}
-              <Button onClick={handleGenerateSummary} disabled={isSummarizing} className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground">
+              <Button onClick={handleGenerateSummary} disabled={isSummarizing} className="mt-4">
                 {isSummarizing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'Generate Summary'}
               </Button>
             </CardContent>
@@ -237,7 +237,15 @@ export function Dashboard() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredPosts.length > 0 ? (
-              filteredPosts.map(post => <PostCard key={post.id} post={post} />)
+              filteredPosts.map((post, index) => (
+                <div
+                  key={post.id}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <PostCard post={post} />
+                </div>
+              ))
             ) : (
               !isPending && (
                 <div className="col-span-full text-center py-12">
@@ -246,7 +254,7 @@ export function Dashboard() {
               )
             )}
             {isPending && Array.from({length:3}).map((_, i) => (
-                <Card key={i}>
+                <Card key={i} className="animate-pulse">
                     <CardHeader className="flex flex-row items-center gap-4 p-4">
                         <Skeleton className="h-10 w-10 rounded-full" />
                         <div className="flex-1 space-y-2">
@@ -258,9 +266,6 @@ export function Dashboard() {
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-4 w-5/6" />
                     </CardContent>
-                    <CardFooter className="p-4">
-                        <Skeleton className="h-4 w-1/2" />
-                    </CardFooter>
                 </Card>
             ))}
           </div>

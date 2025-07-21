@@ -17,18 +17,21 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
 
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
+if (firebaseConfig.apiKey) {
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+    } else {
+        app = getApp();
+    }
+
+    if (app) {
+        auth = getAuth(app);
+        db = getFirestore(app);
+    }
 }
-
-auth = getAuth(app);
-db = getFirestore(app);
-
 
 export { app, auth, db };

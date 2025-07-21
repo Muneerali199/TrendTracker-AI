@@ -6,10 +6,22 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import Link from 'next/link';
 import { Bot } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useState, useEffect } from 'react';
 
 export default function AuthPage() {
     const supabase = createClientComponentClient();
     const { theme } = useTheme();
+    const [redirectUrl, setRedirectUrl] = useState<string>('');
+
+    useEffect(() => {
+        // This code runs only on the client, after the component has mounted
+        setRedirectUrl(`${window.location.origin}/auth/callback`);
+    }, []);
+
+    // Render a loading state or nothing until the redirectUrl is ready
+    if (!redirectUrl) {
+        return null;
+    }
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -22,7 +34,7 @@ export default function AuthPage() {
                     appearance={{ theme: ThemeSupa }}
                     theme={theme === 'dark' ? 'dark' : 'default'}
                     providers={['google']}
-                    redirectTo={`${new URL(window.location.href).origin}/auth/callback`}
+                    redirectTo={redirectUrl}
                 />
             </div>
         </div>

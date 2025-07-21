@@ -21,12 +21,16 @@ export async function generateSummaryAction(content: string) {
 
 export async function fetchPostsAction(influencer: Influencer): Promise<{posts?: Post[], error?: string}> {
   try {
+    // We search on all platforms for the influencer
     const platforms: Post['platform'][] = ['Instagram', 'LinkedIn', 'YouTube'];
-    const searchPromises = platforms.map(platform => searchPosts({ handle: influencer.handle, platform }));
+    const searchPromises = platforms.map(platform => 
+        searchPosts({ handle: influencer.handle, platform })
+    );
     
     const results = await Promise.all(searchPromises);
 
-    const newPosts: Post[] = results.flatMap((result, index) => {
+    const allPosts = results.flatMap((result, index) => {
+        if (!result || !result.posts) return [];
         return result.posts.map(p => ({
             ...p,
             platform: platforms[index],
@@ -37,9 +41,16 @@ export async function fetchPostsAction(influencer: Influencer): Promise<{posts?:
         }));
     });
 
-    return { posts: newPosts };
+    // If no posts were found across all platforms, return a specific message.
+    if (allPosts.length === 0) {
+        return { posts: [] };
+    }
+
+    return { posts: allPosts };
   } catch (e) {
     console.error(e);
-    return { error: 'An error occurred while fetching posts. Please try again.' };
+    // Provide a more specific error message if possible
+    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+    return { error: `An error occurred while fetching posts: ${errorMessage}` };
   }
 }

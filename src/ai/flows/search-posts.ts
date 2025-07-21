@@ -8,7 +8,6 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {performSearch} from '@/services/search';
 import {z} from 'genkit';
 
 const PostSchema = z.object({
@@ -16,7 +15,7 @@ const PostSchema = z.object({
   content: z.string().describe('The content of the post.'),
   likes: z.number().describe('Number of likes.'),
   comments: z.number().describe('Number of comments.'),
-  timestamp: z.string().describe('When the post was created.'),
+  timestamp: z.string().describe('When the post was created (e.g., "1h ago", "2d ago").'),
 });
 
 const SearchPostsInputSchema = z.object({
@@ -28,23 +27,13 @@ const SearchPostsInputSchema = z.object({
 export type SearchPostsInput = z.infer<typeof SearchPostsInputSchema>;
 
 const SearchPostsOutputSchema = z.object({
-  posts: z.array(PostSchema).describe('A list of recent posts found.'),
+  posts: z
+    .array(PostSchema)
+    .describe(
+      'A list of 1 to 3 recent posts found. If the influencer is unknown, return an empty list.'
+    ),
 });
 export type SearchPostsOutput = z.infer<typeof SearchPostsOutputSchema>;
-
-const searchTool = ai.defineTool(
-  {
-    name: 'searchTool',
-    description: 'Performs a search for recent posts by an influencer on a given platform.',
-    inputSchema: SearchPostsInputSchema,
-    outputSchema: SearchPostsOutputSchema,
-  },
-  async (input) => {
-    console.log(`Using search tool for ${input.handle} on ${input.platform}`);
-    return await performSearch(input);
-  }
-);
-
 
 export async function searchPosts(
   input: SearchPostsInput
@@ -56,8 +45,17 @@ const prompt = ai.definePrompt({
   name: 'searchPostsPrompt',
   input: {schema: SearchPostsInputSchema},
   output: {schema: SearchPostsOutputSchema},
-  tools: [searchTool],
-  prompt: `Find recent posts for {{handle}} on {{platform}}.`,
+  prompt: `You are an expert social media simulator. Your task is to generate a list of 1 to 3 recent, realistic-sounding posts for a given influencer handle on a specific platform. The posts should be plausible for the platform and the type of content commonly found there.
+
+- For **YouTube**, generate video titles or descriptions.
+- For **Instagram**, generate photo captions or stories.
+- For **LinkedIn**, generate professional updates or articles.
+
+Generate posts for the following influencer:
+- Handle: {{handle}}
+- Platform: {{platform}}
+
+If the handle seems generic or you have no specific knowledge of them, create plausible content based on the platform's nature. Make the likes and comments counts realistic for a popular influencer.`,
 });
 
 const searchPostsFlow = ai.defineFlow(
@@ -67,7 +65,9 @@ const searchPostsFlow = ai.defineFlow(
     outputSchema: SearchPostsOutputSchema,
   },
   async (input) => {
+    console.log(`Generating posts for ${input.handle} on ${input.platform}...`);
     const {output} = await prompt(input);
+    console.log(`Found ${output?.posts?.length ?? 0} posts.`);
     return output!;
   }
 );

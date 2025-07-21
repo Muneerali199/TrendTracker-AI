@@ -30,7 +30,7 @@ const SearchPostsOutputSchema = z.object({
   posts: z
     .array(PostSchema)
     .describe(
-      'A list of 1 to 3 recent posts found. If the influencer is unknown, return an empty list.'
+      'A list of 1 to 3 recent posts found. If the influencer is unknown or no posts are found, return an empty list.'
     ),
 });
 export type SearchPostsOutput = z.infer<typeof SearchPostsOutputSchema>;
@@ -55,7 +55,7 @@ Generate posts for the following influencer:
 - Handle: {{handle}}
 - Platform: {{platform}}
 
-If the handle seems generic or you have no specific knowledge of them, create plausible content based on the platform's nature. Make the likes and comments counts realistic for a popular influencer.`,
+If the handle seems generic or you have no specific knowledge of them, create plausible content based on the platform's nature. Make the likes and comments counts realistic for a popular influencer. If you cannot generate any posts, return an empty list for the 'posts' field.`,
 });
 
 const searchPostsFlow = ai.defineFlow(
@@ -66,8 +66,16 @@ const searchPostsFlow = ai.defineFlow(
   },
   async (input) => {
     console.log(`Generating posts for ${input.handle} on ${input.platform}...`);
-    const {output} = await prompt(input);
-    console.log(`Found ${output?.posts?.length ?? 0} posts.`);
-    return output!;
+    try {
+      const {output} = await prompt(input);
+      // Ensure the output is never null and posts is always an array
+      const posts = output?.posts ?? [];
+      console.log(`Found ${posts.length} posts.`);
+      return { posts };
+    } catch (error) {
+      console.error(`Error in searchPostsFlow for ${input.handle}:`, error);
+      // In case of an error, return an empty list to prevent downstream failures.
+      return { posts: [] };
+    }
   }
 );

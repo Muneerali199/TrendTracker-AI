@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useMemo, useTransition } from 'react';
+import type { User } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/client';
 import type { Influencer, Post as PostType } from '@/lib/data';
 import { generateSummaryAction, fetchPostsAction } from '@/lib/actions';
 import { 
@@ -8,6 +10,7 @@ import {
   Sidebar, 
   SidebarHeader, 
   SidebarContent, 
+  SidebarFooter,
   SidebarGroup, 
   SidebarGroupLabel,
   SidebarInset,
@@ -21,8 +24,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { PostCard } from '@/components/post-card';
-import { Mail, Plus, Sparkles, Trash2, Bot, Loader2, Youtube, Instagram, Linkedin } from 'lucide-react';
+import { Mail, Plus, Sparkles, Trash2, Bot, Loader2, Youtube, Instagram, Linkedin, LogOut } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useRouter } from 'next/navigation';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 const platforms: PostType['platform'][] = ['YouTube', 'Instagram', 'LinkedIn'];
 
@@ -32,7 +38,13 @@ const platformIcons: Record<PostType['platform'], React.ReactElement> = {
   'LinkedIn': <Linkedin className="w-5 h-5 text-blue-500" />,
 };
 
-export function Dashboard() {
+type DashboardProps = {
+  user: User;
+};
+
+export function Dashboard({ user }: DashboardProps) {
+  const router = useRouter();
+  const supabase = createClient();
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
   const [posts, setPosts] = useState<PostType[]>([]);
 
@@ -48,6 +60,11 @@ export function Dashboard() {
   const [isSummarizing, startSummaryTransition] = useTransition();
   const [isFetching, startFetchingTransition] = useTransition();
   const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.refresh();
+  };
 
   const filteredPosts = useMemo(() => {
     const activePlatforms = Object.keys(selectedPlatforms).filter(p => selectedPlatforms[p]);
@@ -216,6 +233,24 @@ export function Dashboard() {
             </div>
           </SidebarGroup>
         </SidebarContent>
+         <SidebarFooter>
+          <Card className="bg-card/50">
+            <CardContent className="p-2">
+              <div className="flex items-center gap-2">
+                 <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.user_metadata.avatar_url} />
+                    <AvatarFallback>{user.email?.[0].toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-xs font-medium truncate">{user.email}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <main className="p-4 sm:p-6 lg:p-8">

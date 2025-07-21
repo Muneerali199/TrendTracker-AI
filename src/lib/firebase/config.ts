@@ -2,10 +2,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -16,19 +13,30 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
+function isFirebaseConfigured() {
+  return (
+    firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId
+  );
 }
 
-auth = getAuth(app);
-db = getFirestore(app);
+// Initialize Firebase
+let app: FirebaseApp;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
 
 
-export { app, auth, db };
+if (isFirebaseConfigured()) {
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
+  auth = getAuth(app);
+  db = getFirestore(app);
+} else {
+  console.warn("Firebase configuration is missing. Firebase services will be disabled.");
+}
+
+export { app, auth, db, isFirebaseConfigured };

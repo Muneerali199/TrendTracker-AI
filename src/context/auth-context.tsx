@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config';
+import { auth, isFirebaseConfigured } from '@/lib/firebase/config';
 import { usePathname, useRouter } from 'next/navigation';
 
 interface AuthContextType {
@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!auth) {
+    if (!isFirebaseConfigured() || !auth) {
       setLoading(false);
       return;
     }

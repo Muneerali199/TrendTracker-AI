@@ -16,7 +16,6 @@ import { useAuth } from '@/context/auth-context';
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -29,18 +28,10 @@ export default function SignUpPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-     if (!auth) {
+    if (!auth) {
       toast({
         title: 'Sign Up Disabled',
         description: 'Firebase is not configured. Please contact support.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    if (password !== confirmPassword) {
-      toast({
-        title: 'Error',
-        description: 'Passwords do not match.',
         variant: 'destructive',
       });
       return;
@@ -64,11 +55,11 @@ export default function SignUpPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <Link href="/" className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <Bot className="h-8 w-8 text-primary" />
-          </Link>
+            <Link href="/" className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Bot className="h-8 w-8 text-primary" />
+            </Link>
           <CardTitle className="text-2xl">Create an Account</CardTitle>
-          <CardDescription>Join TrendTracker AI to start analyzing trends</CardDescription>
+          <CardDescription>Enter your details to get started with TrendTracker AI</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp} className="space-y-4">
@@ -89,22 +80,11 @@ export default function SignUpPage() {
                 id="password" 
                 type="password" 
                 required 
-                minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm Password</Label>
-              <Input 
-                id="confirm-password" 
-                type="password" 
-                required 
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading || !auth}>
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign Up
             </Button>

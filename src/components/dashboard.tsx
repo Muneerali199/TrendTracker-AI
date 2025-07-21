@@ -14,17 +14,23 @@ import {
   SidebarTrigger
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { PostCard } from '@/components/post-card';
-import { Mail, Plus, Sparkles, Trash2, Bot, Loader2 } from 'lucide-react';
+import { Mail, Plus, Sparkles, Trash2, Bot, Loader2, Youtube, Instagram, Linkedin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const platforms: PostType['platform'][] = ['YouTube', 'Instagram', 'LinkedIn'];
+
+const platformIcons: Record<PostType['platform'], React.ReactElement> = {
+  'YouTube': <Youtube className="w-5 h-5 text-red-500" />,
+  'Instagram': <Instagram className="w-5 h-5 text-pink-500" />,
+  'LinkedIn': <Linkedin className="w-5 h-5 text-blue-500" />,
+};
 
 export function Dashboard() {
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
@@ -166,14 +172,26 @@ export function Dashboard() {
             <div className="mt-4 space-y-2">
               <Input placeholder="Name (e.g. Jane Smith)" value={newInfluencerName} onChange={(e) => setNewInfluencerName(e.target.value)} />
               <Input placeholder="Handle (e.g. @janesmith)" value={newInfluencerHandle} onChange={(e) => setNewInfluencerHandle(e.target.value)} />
-              <Select value={newInfluencerPlatform} onValueChange={(value) => setNewInfluencerPlatform(value as PostType['platform'])}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select platform" />
-                </SelectTrigger>
-                <SelectContent>
-                  {platforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                </SelectContent>
-              </Select>
+               <Select value={newInfluencerPlatform} onValueChange={(value) => setNewInfluencerPlatform(value as PostType['platform'])}>
+                  <SelectTrigger>
+                    <SelectValue asChild>
+                       <div className="flex items-center gap-2">
+                        {platformIcons[newInfluencerPlatform]}
+                        <span>{newInfluencerPlatform}</span>
+                      </div>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {platforms.map(p => (
+                      <SelectItem key={p} value={p}>
+                        <div className="flex items-center gap-2">
+                          {platformIcons[p]}
+                          <span>{p}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               <Button onClick={handleAddInfluencer} className="w-full" disabled={isFetching}>
                 {isFetching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                 {isFetching ? 'Searching...' : 'Add Handle'}
@@ -273,6 +291,9 @@ export function Dashboard() {
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-4 w-5/6" />
                     </CardContent>
+                    <CardFooter className="p-4">
+                        <Skeleton className="h-4 w-1/2" />
+                    </CardFooter>
                 </Card>
             ))}
           </div>

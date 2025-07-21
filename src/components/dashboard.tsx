@@ -23,6 +23,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { PostCard } from '@/components/post-card';
 import { Mail, Plus, Sparkles, Trash2, Bot, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 const platforms: PostType['platform'][] = ['YouTube', 'Instagram', 'LinkedIn'];
 
@@ -32,6 +34,8 @@ export function Dashboard() {
 
   const [newInfluencerName, setNewInfluencerName] = useState('');
   const [newInfluencerHandle, setNewInfluencerHandle] = useState('');
+  const [newInfluencerPlatform, setNewInfluencerPlatform] = useState<PostType['platform']>('Instagram');
+  
   const [selectedPlatforms, setSelectedPlatforms] = useState<Record<string, boolean>>(
     platforms.reduce((acc, p) => ({ ...acc, [p]: true }), {})
   );
@@ -54,27 +58,28 @@ export function Dashboard() {
 
     return sortedPosts.filter(post => 
       activePlatforms.includes(post.platform) && 
-      influencers.some(inf => inf.handle === post.handle)
+      influencers.some(inf => inf.handle === post.handle && inf.platform === post.platform)
     );
   }, [selectedPlatforms, influencers, posts]);
 
   const handleAddInfluencer = async () => {
     if (newInfluencerName.trim() && newInfluencerHandle.trim() && !isFetching) {
       const handleWithAt = newInfluencerHandle.startsWith('@') ? newInfluencerHandle : `@${newInfluencerHandle}`;
-      if (influencers.find(i => i.handle === handleWithAt)) {
-        toast({ title: "Error", description: "Influencer handle already exists.", variant: "destructive" });
+      if (influencers.find(i => i.handle === handleWithAt && i.platform === newInfluencerPlatform)) {
+        toast({ title: "Error", description: "Influencer with this handle and platform already exists.", variant: "destructive" });
         return;
       }
       
       const newInfluencer: Influencer = { 
         name: newInfluencerName, 
         handle: handleWithAt, 
+        platform: newInfluencerPlatform,
         avatar: `https://placehold.co/40x40.png`,
         dataAiHint: 'person portrait'
       };
 
       startFetchingTransition(async () => {
-        const result = await fetchPostsAction(newInfluencer);
+        const result = await fetchPostsAction({ influencer: newInfluencer, platform: newInfluencerPlatform });
         if (result.error) {
             toast({ title: "Error fetching posts", description: result.error, variant: "destructive" });
         } else if (result.posts && result.posts.length > 0) {
@@ -82,20 +87,24 @@ export function Dashboard() {
             setInfluencers(prev => [...prev, newInfluencer]);
             setNewInfluencerName('');
             setNewInfluencerHandle('');
-            toast({ title: "Influencer Added", description: `Found ${result.posts.length} new posts for ${newInfluencer.name}.`});
+            toast({ title: "Influencer Added", description: `Found ${result.posts.length} new posts for ${newInfluencer.name} on ${newInfluencer.platform}.`});
         } else {
             toast({ 
               title: "No Posts Found", 
-              description: `Could not find any recent posts for ${handleWithAt}. Please check the handle and selected platforms.`, 
-              variant: "destructive" 
+              description: `Could not find any recent posts for ${handleWithAt} on ${newInfluencerPlatform}. Please check the handle.`, 
+              variant: "default" 
             });
+            // Still add the influencer even if no posts are found
+            setInfluencers(prev => [...prev, newInfluencer]);
+            setNewInfluencerName('');
+            setNewInfluencerHandle('');
         }
       });
     }
   };
 
-  const handleRemoveInfluencer = async (handleToRemove: string) => {
-    setInfluencers(influencers.filter(i => i.handle !== handleToRemove));
+  const handleRemoveInfluencer = async (handleToRemove: string, platformToRemove: PostType['platform']) => {
+    setInfluencers(influencers.filter(i => !(i.handle === handleToRemove && i.platform === platformToRemove)));
   };
 
   const handleGenerateSummary = () => {
@@ -136,9 +145,12 @@ export function Dashboard() {
             <SidebarGroupLabel>Manage Handles</SidebarGroupLabel>
             <div className="space-y-2">
               {influencers.map((influencer) => (
-                <div key={influencer.handle} className="flex items-center justify-between text-sm p-1 rounded-md hover:bg-sidebar-accent">
-                  <span>{influencer.name}</span>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveInfluencer(influencer.handle)}>
+                <div key={`${influencer.handle}-${influencer.platform}`} className="flex items-center justify-between text-sm p-1 rounded-md hover:bg-sidebar-accent">
+                  <div className="flex flex-col">
+                    <span>{influencer.name}</span>
+                    <span className="text-xs text-muted-foreground">{influencer.platform}</span>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveInfluencer(influencer.handle, influencer.platform)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -147,6 +159,14 @@ export function Dashboard() {
             <div className="mt-4 space-y-2">
               <Input placeholder="Name (e.g. Jane Smith)" value={newInfluencerName} onChange={(e) => setNewInfluencerName(e.target.value)} />
               <Input placeholder="Handle (e.g. @janesmith)" value={newInfluencerHandle} onChange={(e) => setNewInfluencerHandle(e.target.value)} />
+              <Select value={newInfluencerPlatform} onValueChange={(value) => setNewInfluencerPlatform(value as PostType['platform'])}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  {platforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <Button onClick={handleAddInfluencer} className="w-full" disabled={isFetching}>
                 {isFetching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                 {isFetching ? 'Searching...' : 'Add Handle'}

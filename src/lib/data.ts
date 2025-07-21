@@ -14,6 +14,7 @@ export type Post = {
 export type Influencer = {
   name: string;
   handle: string;
+  platform: 'YouTube' | 'Instagram' | 'LinkedIn';
   avatar: string;
   dataAiHint: string;
 };

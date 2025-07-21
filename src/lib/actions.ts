@@ -19,29 +19,24 @@ export async function generateSummaryAction(content: string) {
   }
 }
 
-export async function fetchPostsAction(influencer: Influencer): Promise<{posts?: Post[], error?: string}> {
+export async function fetchPostsAction({ influencer, platform }: { influencer: Influencer, platform: Post['platform'] }): Promise<{posts?: Post[], error?: string}> {
   try {
-    // We search on all platforms for the influencer
-    const platforms: Post['platform'][] = ['Instagram', 'LinkedIn', 'YouTube'];
-    const searchPromises = platforms.map(platform => 
-        searchPosts({ handle: influencer.handle, platform })
-    );
-    
-    const results = await Promise.all(searchPromises);
+    const result = await searchPosts({ handle: influencer.handle, platform });
 
-    const allPosts = results.flatMap((result, index) => {
-        if (!result || !result.posts) return [];
-        return result.posts.map(p => ({
-            ...p,
-            platform: platforms[index],
-            influencer: influencer.name,
-            handle: influencer.handle,
-            avatar: influencer.avatar,
-            dataAiHint: influencer.dataAiHint,
-        }));
-    });
+    if (!result || !result.posts) {
+        return { posts: [] };
+    }
 
-    // If no posts were found across all platforms, return a specific message.
+    const allPosts = result.posts.map(p => ({
+        ...p,
+        platform: platform,
+        influencer: influencer.name,
+        handle: influencer.handle,
+        avatar: influencer.avatar,
+        dataAiHint: influencer.dataAiHint,
+    }));
+
+    // If no posts were found on the platform, return an empty array.
     if (allPosts.length === 0) {
         return { posts: [] };
     }

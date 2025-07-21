@@ -1,8 +1,11 @@
 "use client";
 
-import React, { useState, useMemo, useTransition } from 'react';
+import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import type { Influencer, Post as PostType } from '@/lib/data';
 import { generateSummaryAction, fetchPostsAction } from '@/lib/actions';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import { addInfluencer as addInfluencerToDB, removeInfluencer as removeInfluencerFromDB, getInfluencers } from '@/lib/firebase/firestore';
 
 import { 
   SidebarProvider, 
@@ -13,6 +16,10 @@ import {
   SidebarGroupLabel,
   SidebarInset,
   SidebarTrigger,
+  SidebarFooter,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +29,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { PostCard } from '@/components/post-card';
-import { Mail, Plus, Sparkles, Trash2, Bot, Loader2 } from 'lucide-react';
+import { Mail, Plus, Sparkles, Trash2, Bot, Loader2, LogOut, User, AlertTriangle } from 'lucide-react';
 
 type DashboardProps = {
   initialInfluencers: Influencer[];
@@ -32,6 +39,9 @@ type DashboardProps = {
 const platforms: PostType['platform'][] = ['YouTube', 'Instagram', 'LinkedIn'];
 
 export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }: DashboardProps) {
+  const { user, loading, logout, isFirebaseEnabled } = useAuth();
+  const router = useRouter();
+
   const [influencers, setInfluencers] = useState<Influencer[]>(initialInfluencers);
   const [posts, setPosts] = useState<PostType[]>(initialPostsProp);
 
@@ -45,6 +55,33 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
   const [isSummarizing, startSummaryTransition] = useTransition();
   const [isFetching, startFetchingTransition] = useTransition();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (isFirebaseEnabled && !loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router, isFirebaseEnabled]);
+
+  useEffect(() => {
+    if (user && isFirebaseEnabled) {
+      const fetchInfluencers = async () => {
+        const userInfluencers = await getInfluencers(user.uid);
+        if (userInfluencers.length > 0) {
+          setInfluencers(userInfluencers);
+          // Optionally fetch posts for these influencers
+          userInfluencers.forEach(inf => {
+            startFetchingTransition(async () => {
+              const result = await fetchPostsAction(inf);
+              if (result.posts) {
+                setPosts(prev => [...prev, ...result.posts!]);
+              }
+            });
+          });
+        }
+      };
+      fetchInfluencers();
+    }
+  }, [user, isFirebaseEnabled]);
 
   const filteredPosts = useMemo(() => {
     const activePlatforms = Object.keys(selectedPlatforms).filter(p => selectedPlatforms[p]);
@@ -64,8 +101,8 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
     );
   }, [selectedPlatforms, influencers, posts]);
 
-  const handleAddInfluencer = () => {
-    if (newInfluencerName.trim() && newInfluencerHandle.trim() && !isFetching) {
+  const handleAddInfluencer = async () => {
+    if (newInfluencerName.trim() && newInfluencerHandle.trim() && !isFetching && user && isFirebaseEnabled) {
       const handleWithAt = newInfluencerHandle.startsWith('@') ? newInfluencerHandle : `@${newInfluencerHandle}`;
       if (influencers.find(i => i.handle === handleWithAt)) {
         toast({ title: "Error", description: "Influencer handle already exists.", variant: "destructive" });
@@ -84,6 +121,7 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
         if (result.error) {
             toast({ title: "Error fetching posts", description: result.error, variant: "destructive" });
         } else if (result.posts && result.posts.length > 0) {
+            await addInfluencerToDB(user.uid, newInfluencer);
             setPosts(prevPosts => [...prevPosts, ...result.posts!]);
             setInfluencers(prev => [...prev, newInfluencer]);
             setNewInfluencerName('');
@@ -97,11 +135,20 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
             });
         }
       });
+    } else if (!isFirebaseEnabled) {
+      toast({
+        title: 'Authentication Disabled',
+        description: 'Please configure Firebase to manage influencers.',
+        variant: 'destructive',
+      });
     }
   };
 
-  const handleRemoveInfluencer = (handleToRemove: string) => {
-    setInfluencers(influencers.filter(i => i.handle !== handleToRemove));
+  const handleRemoveInfluencer = async (handleToRemove: string) => {
+    if (user && isFirebaseEnabled) {
+      await removeInfluencerFromDB(user.uid, handleToRemove);
+      setInfluencers(influencers.filter(i => i.handle !== handleToRemove));
+    }
   };
 
   const handleGenerateSummary = () => {
@@ -126,6 +173,14 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
     });
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   const isPending = isSummarizing || isFetching;
 
   return (
@@ -138,22 +193,38 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
           </div>
         </SidebarHeader>
         <SidebarContent className="p-2">
+          {!isFirebaseEnabled && (
+            <Card className="m-2 bg-yellow-50 border-yellow-200">
+              <CardContent className="p-3">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-500 mt-1" />
+                  <div>
+                    <p className="font-semibold text-yellow-800">Demo Mode</p>
+                    <p className="text-xs text-yellow-700">
+                      Authentication is disabled. Please add your Firebase config to enable user accounts.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <SidebarGroup>
             <SidebarGroupLabel>Manage Handles</SidebarGroupLabel>
             <div className="space-y-2">
               {influencers.map((influencer) => (
                 <div key={influencer.handle} className="flex items-center justify-between text-sm p-1 rounded-md hover:bg-sidebar-accent">
                   <span>{influencer.name}</span>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveInfluencer(influencer.handle)}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveInfluencer(influencer.handle)} disabled={!isFirebaseEnabled}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               ))}
             </div>
             <div className="mt-4 space-y-2">
-              <Input placeholder="Name (e.g. Jane Smith)" value={newInfluencerName} onChange={(e) => setNewInfluencerName(e.target.value)} />
-              <Input placeholder="Handle (e.g. @janesmith)" value={newInfluencerHandle} onChange={(e) => setNewInfluencerHandle(e.target.value)} />
-              <Button onClick={handleAddInfluencer} className="w-full" disabled={isFetching}>
+              <Input placeholder="Name (e.g. Jane Smith)" value={newInfluencerName} onChange={(e) => setNewInfluencerName(e.target.value)} disabled={!isFirebaseEnabled}/>
+              <Input placeholder="Handle (e.g. @janesmith)" value={newInfluencerHandle} onChange={(e) => setNewInfluencerHandle(e.target.value)} disabled={!isFirebaseEnabled}/>
+              <Button onClick={handleAddInfluencer} className="w-full" disabled={isFetching || !isFirebaseEnabled}>
                 {isFetching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                 {isFetching ? 'Searching...' : 'Add Handle'}
               </Button>
@@ -177,6 +248,24 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
             </div>
           </SidebarGroup>
         </SidebarContent>
+        {isFirebaseEnabled && user && (
+            <SidebarFooter>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <div className="flex items-center gap-2 p-2 text-sm">
+                            <User className="w-4 h-4"/>
+                            <span className="font-medium">{user.email}</span>
+                        </div>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={logout}>
+                            <LogOut />
+                            <span>Logout</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarFooter>
+        )}
       </Sidebar>
       <SidebarInset>
         <main className="p-4 sm:p-6 lg:p-8">
@@ -216,7 +305,7 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
                 <p className="text-sm text-muted-foreground">Click the button to generate an AI summary of the posts below.</p>
               )}
               <Button onClick={handleGenerateSummary} disabled={isSummarizing} className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground">
-                {isSummarizing ? 'Generating...' : 'Generate Summary'}
+                {isSummarizing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'Generate Summary'}
               </Button>
             </CardContent>
           </Card>
@@ -226,7 +315,7 @@ export function Dashboard({ initialInfluencers, initialPosts: initialPostsProp }
               filteredPosts.map(post => <PostCard key={post.id} post={post} />)
             ) : (
               <div className="col-span-full text-center py-12">
-                <p className="text-muted-foreground">No posts found for the selected filters.</p>
+                <p className="text-muted-foreground">No posts found for the selected filters. Add an influencer to get started.</p>
               </div>
             )}
           </div>
